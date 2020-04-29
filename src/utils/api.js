@@ -21,7 +21,7 @@ axios.interceptors.response.use(success => {
             Message.error({ message: "未知错误" })
         }
     }
-    return null;
+    return null
 })
 
 let base = ''
@@ -31,15 +31,44 @@ export const postKeyValueRequest = (url, params) => {
         url: `${base}${url}`,
         data: params,
         transformRequest: [function (data) {
-            let ret = ''
+            const param = new URLSearchParams();
             for (let i in data) {
-                ret += encodeURIComponent(i) + '=' + encodeURIComponent(data[i]) + '&'
+                param.append(encodeURIComponent(i),encodeURIComponent(data[i]))
+                //ret += encodeURIComponent(i) + '=' + encodeURIComponent(data[i]) + '&'
             }
             // console.log(ret);
-            return ret
+            return param
         }],
         header: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
+    })
+}
+export const postRequest = (url, params) => {
+    return axios({
+        method: 'post',
+        url: `${base}${url}`,
+        data: params
+    })
+}
+export const putRequest = (url, params) => {
+    return axios({
+        method: 'put',
+        url: `${base}${url}`,
+        data: params
+    })
+}
+export const getRequest = (url, params) => {
+    return axios({
+        method: 'get',
+        url: `${base}${url}`,
+        params: params
+    })
+}
+export const deleteRequest = (url, params) => {
+    return axios({
+        method: 'delete',
+        url: `${base}${url}`,
+        params: params
     })
 }
