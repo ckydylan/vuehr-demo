@@ -1,15 +1,32 @@
 <template>
     <div>
         <div>
-            <el-input
-                    size="small"
-                    class="addPosInput"
-                    placeholder="添加职位..."
-                    prefix-icon="el-icon-plus"
-                    @keydown.enter.native="addPosition"
-                    v-model="pos.name">
-            </el-input>
-            <el-button icon="el-icon-plus" size="small" type="primary" @click="addPosition">添加</el-button>
+            <div>
+                <el-input
+                        size="small"
+                        class="addPosInput"
+                        placeholder="添加职位..."
+                        prefix-icon="el-icon-plus"
+                        @keydown.enter.native="addPosition"
+                        v-model="pos.name">
+                </el-input>
+                <el-button icon="el-icon-plus" size="small" type="primary" @click="addPosition">添加</el-button>
+                <el-upload
+                        :show-file-list="false"
+                        :before-upload="beforeUpload"
+                        :on-success="onSuccess"
+                        :on-error="onError"
+                        :disabled="importBtnDisabled"
+                        style="display: inline-flex; margin-left: 80px"
+                        action="/system/basic/pos/import">
+                    <el-button :disabled="importBtnDisabled" type="success" :icon="importBtnIcon" size="small">
+                        {{importBtnText}}
+                    </el-button>
+                </el-upload>
+                <el-button type="success" icon="el-icon-download" size="small" @click="exportData" style="display: inline-flex; margin-left: 10px">
+                    导出数据
+                </el-button>
+            </div>
             <div class="posManaMain">
                 <el-table
                         :data="position"
@@ -58,9 +75,20 @@
                         </template>
                     </el-table-column>
                 </el-table>
+                <div class="block">
+                    <el-pagination
+                            @size-change="handleSizeChange"
+                            @current-change="handleCurrentChange"
+                            :page-sizes="[5, 10, 20, 30]"
+                            :page-size="5"
+                            layout="total, sizes, prev, pager, next, jumper"
+                            :total="pageInfo.total">
+                    </el-pagination>
+                </div>
                 <el-button @click="deleteMany" type="danger" size="small" style="margin-top: 8px"
                            :disabled="multipleSelection.length===0">批量删除
                 </el-button>
+
             </div>
 
             <el-dialog
@@ -92,12 +120,17 @@
 </template>
 
 <script>
-    import {deleteRequest, postRequest,putRequest,getRequest} from "../../../utils/api";
+    import {deleteRequest, postRequest, putRequest, getRequest} from "../../../utils/api";
 
     export default {
         name: "PosMana",
         data() {
             return {
+                pageInfo: {
+                    total: 0,
+                    page: 1,
+                    size: 5
+                },
                 pos: {
                     name: ''
                 },
@@ -108,20 +141,54 @@
                     enabled: false
                 },
                 dialogVisible: false,
+                importBtnText: '导入数据',
+                importBtnIcon: 'el-icon-upload2',
+                importBtnDisabled: false
             }
         },
         mounted() {
             this.initPositions();
         },
         methods: {
+            onSuccess(response, file, fileList) {
+                this.importBtnText = '导入数据'
+                this.importBtnIcon = 'el-icon-upload2'
+                this.importBtnDisabled = false
+                this.initPositions()
+            },
+            onError(err, file, fileList) {
+                this.importBtnText = '导入数据'
+                this.importBtnIcon = 'el-icon-upload2'
+                this.importBtnDisabled = false
+            },
+            beforeUpload () {
+                this.importBtnText = '正在导入'
+                this.importBtnIcon = 'el-icon-loading'
+                this.importBtnDisabled = true
+            },
+            exportData () {
+                window.open('/system/basic/pos/export', '_parent')
+            },
             handleSelectionChange(val) {
                 // console.log(val)
                 this.multipleSelection = val;
             },
             async initPositions() {
-                const resp = await getRequest('/system/basic/pos/');
+                const resp = await getRequest('/system/basic/pos/?page=' + this.pageInfo.page + '&size=' + this.pageInfo.size);
                 // console.log(resp)
-                if (resp) this.position = resp.obj;
+                if (resp) {
+                    // this.position = resp.obj;
+                    this.position = resp.obj.list;
+                    this.pageInfo.total = resp.obj.total;
+                }
+            },
+            handleSizeChange(currentSize) {
+                this.pageInfo.size = currentSize;
+                this.initPositions();
+            },
+            handleCurrentChange(currentPage) {
+                this.pageInfo.page = currentPage;
+                this.initPositions();
             },
             async addPosition() {
                 if (this.pos.name) {
